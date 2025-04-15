@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"zestack.dev/l4g"
+	"go-slim.dev/l4g"
 )
 
 func Wrap(fns ...func() error) func() error {

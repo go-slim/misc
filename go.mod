@@ -1,5 +1,5 @@
-module zestack.dev/misc
+module go-slim.dev/misc
 
-go 1.21.0
+go 1.24.0
 
 require golang.org/x/crypto v0.23.0
