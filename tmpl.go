@@ -30,7 +30,7 @@ func Strtr2(template, startTag, endTag string, data map[string]any) (string, err
 		if value, ok := data["*"]; ok {
 			return write(w, value)
 		}
-		bts := StringToSliceByte(startTag)
+		bts := UnsafeStringToBytes(startTag)
 		bts = append(bts, tag...)
 		bts = append(bts, endTag...)
 		return w.Write(bts)
@@ -71,9 +71,9 @@ func write(w io.Writer, value any) (int, error) {
 //
 // Returns the number of bytes written to w.
 func Interpolate(template, startTag, endTag string, w io.Writer, f TagFunc) (int64, error) {
-	s := StringToSliceByte(template)
-	a := StringToSliceByte(startTag)
-	b := StringToSliceByte(endTag)
+	s := UnsafeStringToBytes(template)
+	a := UnsafeStringToBytes(startTag)
+	b := UnsafeStringToBytes(endTag)
 
 	var nn int64
 	var ni int
@@ -98,7 +98,7 @@ func Interpolate(template, startTag, endTag string, w io.Writer, f TagFunc) (int
 			break
 		}
 
-		ni, err = f(w, SliceByteToString(s[:n]))
+		ni, err = f(w, UnsafeBytesToString(s[:n]))
 		nn += int64(ni)
 		if err != nil {
 			return nn, err
