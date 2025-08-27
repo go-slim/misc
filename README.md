@@ -27,7 +27,7 @@ package main
 
 import (
     "fmt"
-    misc "go-slim.dev/misc"
+    "go-slim.dev/misc"
 )
 
 func main() {
