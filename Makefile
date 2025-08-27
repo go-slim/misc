@@ -4,6 +4,16 @@ GO       ?= go
 PKG      ?= ./...
 ARTIFACTS?= artifacts
 
+# act (GitHub Actions local runner) settings
+# You can override these via environment variables, e.g.
+#   ACT_IMAGE=catthehacker/ubuntu:act-latest make act-build
+ACT        ?= act
+ACT_IMAGE  ?= catthehacker/ubuntu:act-22.04
+# Useful options:
+#  --bind   : bind-mount the repo (helps with permissions/paths)
+#  -W path  : run from a specific workflow directory
+ACT_OPTS   ?= --bind
+
 .PHONY: help
 help: ## Show this help
 	@echo "Common targets:"
@@ -17,6 +27,10 @@ help: ## Show this help
 	@echo "  make test         # go test -v ./..."
 	@echo "  make bench        # run benchmarks"
 	@echo "  make bench-save   # run benchmarks and save to artifacts/bench.txt"
+	@echo "  make act-list     # list workflow jobs (via act)"
+	@echo "  make act-build    # run build-test job with act (OrbStack-friendly)"
+	@echo "  make act-bench    # run bench job with act (OrbStack-friendly)"
+	@echo "  make act          # run build-test then bench via act"
 	@echo "  make clean        # remove artifacts"
 
 .PHONY: ci
@@ -63,6 +77,23 @@ bench: ## Run benchmarks
 bench-save: ## Run benchmarks and save to artifacts/bench.txt
 	@mkdir -p $(ARTIFACTS)
 	$(GO) test -bench . -benchmem -run '^$$' $(PKG) | tee $(ARTIFACTS)/bench.txt
+
+.PHONY: act-list
+act-list: ## List workflow jobs (via act)
+	$(ACT) -l
+
+.PHONY: act-build
+act-build: ## Run build-test job with act (OrbStack-friendly)
+	$(ACT) -j build-test -P ubuntu-latest=$(ACT_IMAGE) $(ACT_OPTS)
+
+.PHONY: act-bench
+act-bench: ## Run bench job with act (OrbStack-friendly)
+	$(ACT) -j bench -P ubuntu-latest=$(ACT_IMAGE) $(ACT_OPTS)
+
+.PHONY: act
+act: ## Run build-test then bench via act
+	$(MAKE) act-build
+	$(MAKE) act-bench
 
 .PHONY: clean
 clean: ## Remove artifacts directory
