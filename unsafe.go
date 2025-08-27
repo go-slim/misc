@@ -12,12 +12,17 @@ func SliceByteToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// UnsafeBytesToString uses Go's unsafe package to convert a byte slice to a string.
-// UnsafeBytesToString 使用 Go 1.20+ 的 unsafe 辅助 API 进行零拷贝转换。
+// BytesToString 使用 Go 1.20+ 的 unsafe 辅助 API 将字节切片零拷贝转换为字符串。
 // 注意：结果与原切片共享底层数据，需保证原切片后续不被修改。
-func UnsafeBytesToString(b []byte) string {
+func BytesToString(b []byte) string {
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }
+
+// UnsafeBytesToString uses Go's unsafe package to convert a byte slice to a string.
+// Deprecated: use BytesToString instead.
+// UnsafeBytesToString 使用 Go 1.20+ 的 unsafe 辅助 API 进行零拷贝转换。
+// 注意：结果与原切片共享底层数据，需保证原切片后续不被修改。
+func UnsafeBytesToString(b []byte) string { return BytesToString(b) }
 
 // StringToSliceByte convert a string to byte slice.
 // Deprecated: use UnsafeStringToBytes func
