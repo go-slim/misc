@@ -9,9 +9,9 @@ func TestUnsafeBytesStringConversions(t *testing.T) {
 		t.Fatalf("UnsafeBytesToString mismatch: %q", s)
 	}
 
-	bs := UnsafeStringToBytes("world")
+	bs := StringToBytes("world")
 	if string(bs) != "world" {
-		t.Fatalf("UnsafeStringToBytes mismatch: %q", string(bs))
+		t.Fatalf("StringToBytes mismatch: %q", string(bs))
 	}
 }
 

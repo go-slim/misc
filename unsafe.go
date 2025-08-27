@@ -35,8 +35,13 @@ func StringToSliceByte(s string) []byte {
 }
 
 // UnsafeStringToBytes uses Go's unsafe package to convert a string to a byte slice.
+// Deprecated: use StringToBytes instead.
 // UnsafeStringToBytes 使用 Go 1.20+ 的 unsafe 辅助 API 将字符串零拷贝转换为字节切片。
 // 注意：得到的切片只读，切勿修改其内容。
-func UnsafeStringToBytes(s string) []byte {
+func UnsafeStringToBytes(s string) []byte { return StringToBytes(s) }
+
+// StringToBytes 使用 Go 1.20+ 的 unsafe 辅助 API 将字符串零拷贝转换为字节切片。
+// 注意：得到的切片只读，切勿修改其内容。
+func StringToBytes(s string) []byte {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
 }

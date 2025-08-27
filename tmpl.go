@@ -30,9 +30,9 @@ func Tmpl(template, startTag, endTag string, data map[string]any) (string, error
 		if value, ok := data["*"]; ok {
 			return write(w, value)
 		}
-		bts := UnsafeStringToBytes(startTag)
+		bts := StringToBytes(startTag)
 		bts = append(bts, tag...)
-		bts = append(bts, endTag...)
+		bts = append(bts, StringToBytes(endTag)...)
 		return w.Write(bts)
 	})
 	if err != nil {
@@ -71,9 +71,9 @@ func write(w io.Writer, value any) (int, error) {
 //
 // Returns the number of bytes written to w.
 func Interpolate(template, startTag, endTag string, w io.Writer, f TagFunc) (int64, error) {
-	s := UnsafeStringToBytes(template)
-	a := UnsafeStringToBytes(startTag)
-	b := UnsafeStringToBytes(endTag)
+	s := StringToBytes(template)
+	a := StringToBytes(startTag)
+	b := StringToBytes(endTag)
 
 	var nn int64
 	var ni int
