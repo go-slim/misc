@@ -98,7 +98,7 @@ func Interpolate(template, startTag, endTag string, w io.Writer, f TagFunc) (int
 			break
 		}
 
-		ni, err = f(w, UnsafeBytesToString(s[:n]))
+		ni, err = f(w, BytesToString(s[:n]))
 		nn += int64(ni)
 		if err != nil {
 			return nn, err
