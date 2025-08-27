@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// builtinTypesLower 内置的常见 MIME 类型到默认扩展名映射（全部小写）。
 var builtinTypesLower = map[string][]string{
 	// https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/img
 	// https://developer.mozilla.org/zh-CN/docs/Web/Media/Formats/Image_types
@@ -47,6 +48,9 @@ var builtinTypesLower = map[string][]string{
 	//"video/mp2t":      ".ts",
 }
 
+// ExtensionByType 根据 MIME 类型返回一个匹配的扩展名（包含点，如 .png）。
+// 优先使用内置表，其次回退到标准库 mime.ExtensionsByType。
+// 若无法识别，返回空字符串。
 func ExtensionByType(mimeType string) string {
 	extensions, ok := builtinTypesLower[mimeType]
 	if ok {
@@ -59,6 +63,8 @@ func ExtensionByType(mimeType string) string {
 	return ""
 }
 
+// TypeByExtension 根据扩展名（可不含点）返回对应的 MIME 类型。
+// 优先匹配内置表，不存在时回退到标准库 mime.TypeByExtension。
 func TypeByExtension(ext string) string {
 	if ext == "" {
 		return ""
@@ -76,6 +82,7 @@ func TypeByExtension(ext string) string {
 	return mime.TypeByExtension(ext)
 }
 
+// CharsetByType 针对 text/* 类型返回 "charset=utf-8"，否则返回空字符串。
 func CharsetByType(typ string) string {
 	if strings.HasPrefix(typ, "text/") {
 		return "charset=utf-8"
