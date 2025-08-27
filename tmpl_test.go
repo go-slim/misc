@@ -2,8 +2,8 @@ package misc
 
 import (
 	"bytes"
-	"io"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 )
@@ -36,10 +36,10 @@ func TestStrtr_StarFallback_AndUnknownKept(t *testing.T) {
 	}
 }
 
-func TestStrtr2_CustomDelimiters_AndTypes(t *testing.T) {
+func TestTmpl_CustomDelimiters_AndTypes(t *testing.T) {
 	name := "Ann"
 	bytesVal := []byte("BYTES")
-	out, err := Strtr2("[[s]]|[[p]]|[[b]]|[[sb]]|[[str]]|[[def]]|[[unk]]", "[[", "]]", map[string]any{
+	out, err := Tmpl("[[s]]|[[p]]|[[b]]|[[sb]]|[[str]]|[[def]]|[[unk]]", "[[", "]]", map[string]any{
 		"s":   "hi",
 		"p":   &name,
 		"b":   bytesVal,
@@ -48,7 +48,7 @@ func TestStrtr2_CustomDelimiters_AndTypes(t *testing.T) {
 		"def": struct{ X int }{3},
 	})
 	if err != nil {
-		t.Fatalf("Strtr2 error: %v", err)
+		t.Fatalf("Tmpl error: %v", err)
 	}
 	want := "hi|Ann|BYTES|BYTES|S7|{3}|[[unk]]"
 	if out != want {
