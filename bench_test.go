@@ -2,8 +2,11 @@ package misc
 
 import (
     "io"
+    "strconv"
     "strings"
     "testing"
+
+    "golang.org/x/crypto/bcrypt"
 )
 
 func BenchmarkStrtr(b *testing.B) {
@@ -12,6 +15,30 @@ func BenchmarkStrtr(b *testing.B) {
     b.ReportAllocs()
     for i := 0; i < b.N; i++ {
         _, _ = Strtr(in, m)
+    }
+}
+
+func BenchmarkTmpl_Large(b *testing.B) {
+    // Build a large template with repeated segments
+    part := "User:{ID},Name:{Name},Post:{Post},Q={Q};"
+    tpl := strings.Repeat(part, 200) // ~200 segments
+    data := map[string]any{"ID": 123, "Post": 456, "Q": "search", "Name": "alice"}
+    b.ReportAllocs()
+    for i := 0; i < b.N; i++ {
+        _, _ = Tmpl(tpl, "{", "}", data)
+    }
+}
+
+func BenchmarkTmpl_DensePlaceholders(b *testing.B) {
+    // Template with very dense placeholders
+    tpl := "{A}{B}{C}{D}{E}{F}{G}{H}{I}{J}{K}{L}{M}{N}{O}{P}{Q}{R}{S}{T}"
+    data := map[string]any{}
+    for i := 'A'; i <= 'T'; i++ {
+        data[string(i)] = int(i)
+    }
+    b.ReportAllocs()
+    for i := 0; i < b.N; i++ {
+        _, _ = Tmpl(tpl, "{", "}", data)
     }
 }
 
@@ -109,5 +136,17 @@ func BenchmarkIsZero(b *testing.B) {
         for _, v := range cases {
             _ = IsZero(v)
         }
+    }
+}
+
+func BenchmarkPasswordHash_Cost(b *testing.B) {
+    pwd := []byte("S3cret!")
+    for _, cost := range []int{8, bcrypt.DefaultCost, 12} {
+        b.Run("cost="+strconv.Itoa(cost), func(b *testing.B) {
+            b.ReportAllocs()
+            for i := 0; i < b.N; i++ {
+                _, _ = bcrypt.GenerateFromPassword(pwd, cost)
+            }
+        })
     }
 }

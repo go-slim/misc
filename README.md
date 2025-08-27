@@ -1,5 +1,7 @@
 # misc
 
+![CI](https://github.com/go-slim/misc/actions/workflows/ci.yml/badge.svg)
+
 通用实用库，提供常用的工具函数与类型，覆盖摘要/密码、函数式封装、MIME 解析、模板插值、堆栈信息、零拷贝转换与零值判断等能力。
 
 - 模块路径：`go-slim.dev/misc`
