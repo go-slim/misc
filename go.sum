@@ -1,3 +1,2 @@
-go-slim.dev/l4g v0.0.0-20250420182206-e73e009fd9ce h1:RKfKm4STusk8JlJUL69myp9jbULoM6ThlDQd34yeKyM=
-go-slim.dev/l4g v0.0.0-20250420182206-e73e009fd9ce/go.mod h1:oo5KbNzC3wOXHXSk/K5B1gwDTANh9EHvtpb+vrhPtd4=
 golang.org/x/crypto v0.43.0 h1:dduJYIi3A3KOfdGOHX8AVZ/jGiyPa3IbBozJ5kNuE04=
+golang.org/x/crypto v0.43.0/go.mod h1:BFbav4mRNlXJL4wNeejLpWxB7wMbc79PdRGhWKncxR0=
