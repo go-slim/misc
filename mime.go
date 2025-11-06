@@ -2,13 +2,14 @@ package misc
 
 import (
 	"mime"
+	"slices"
 	"strings"
 )
 
-// builtinTypesLower 内置的常见 MIME 类型到默认扩展名映射（全部小写）。
+// builtinTypesLower built-in common MIME types to default extensions mapping (all lowercase).
 var builtinTypesLower = map[string][]string{
-	// https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/img
-	// https://developer.mozilla.org/zh-CN/docs/Web/Media/Formats/Image_types
+	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
+	// https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
 	"image/apng":               {".apng"},
 	"image/avif":               {".avif"},
@@ -22,7 +23,7 @@ var builtinTypesLower = map[string][]string{
 	"image/vnd.microsoft.icon": {".ico"},
 	"image/tiff":               {".tif", ".tiff"},
 
-	// https://developer.mozilla.org/zh-CN/docs/Web/Media/Formats/Containers#browser_compatibility
+	// https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Containers#browser_compatibility
 	"audio/3gpp":   {".3gp"},
 	"audio/aac":    {".aac"},
 	"audio/flac":   {".flac"},
@@ -36,7 +37,7 @@ var builtinTypesLower = map[string][]string{
 	"audio/x-midi": {".mid", ".midi"},
 	"audio/opus":   {".opus"},
 
-	// https://developer.mozilla.org/zh-CN/docs/Web/Media/Formats/Containers#browser_compatibility
+	// https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Containers#browser_compatibility
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
 	"video/3gpp":      {".3gp"},
 	"video/mpeg":      {".mpeg", ".mpg"},
@@ -48,9 +49,11 @@ var builtinTypesLower = map[string][]string{
 	//"video/mp2t":      ".ts",
 }
 
-// ExtensionByType 根据 MIME 类型返回一个匹配的扩展名（包含点，如 .png）。
-// 优先使用内置表，其次回退到标准库 mime.ExtensionsByType。
-// 若无法识别，返回空字符串。
+// ExtensionByType returns a matching extension (including dot, like .png) based on MIME type.
+// Prioritize built-in table, then fallback to standard library mime.ExtensionsByType.
+// Returns empty string if unrecognized.
+//
+// Deprecated: Please use https://github.com/h2non/filetype library instead.
 func ExtensionByType(mimeType string) string {
 	extensions, ok := builtinTypesLower[mimeType]
 	if ok {
@@ -63,8 +66,10 @@ func ExtensionByType(mimeType string) string {
 	return ""
 }
 
-// TypeByExtension 根据扩展名（可不含点）返回对应的 MIME 类型。
-// 优先匹配内置表，不存在时回退到标准库 mime.TypeByExtension。
+// TypeByExtension returns corresponding MIME type based on extension (can be without dot).
+// Prioritize built-in table matching, fallback to standard library mime.TypeByExtension if not found.
+//
+// Deprecated: Please use https://github.com/h2non/filetype library instead.
 func TypeByExtension(ext string) string {
 	if ext == "" {
 		return ""
@@ -73,16 +78,16 @@ func TypeByExtension(ext string) string {
 		ext = "." + ext
 	}
 	for typ, exts := range builtinTypesLower {
-		for _, ext2 := range exts {
-			if ext2 == ext {
-				return typ
-			}
+		if slices.Contains(exts, ext) {
+			return typ
 		}
 	}
 	return mime.TypeByExtension(ext)
 }
 
-// CharsetByType 针对 text/* 类型返回 "charset=utf-8"，否则返回空字符串。
+// CharsetByType returns "charset=utf-8" for text/* types, otherwise returns empty string.
+//
+// Deprecated: No longer supported.
 func CharsetByType(typ string) string {
 	if strings.HasPrefix(typ, "text/") {
 		return "charset=utf-8"

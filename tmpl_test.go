@@ -86,3 +86,62 @@ func TestInterpolate_CallsTagFunc(t *testing.T) {
 		t.Fatalf("output wrong: %q", buf.String())
 	}
 }
+
+// Benchmark tests moved from bench_test.go
+func BenchmarkStrtr(b *testing.B) {
+	in := "Hello, {name}! Today is {day}. {name} likes {thing}."
+	m := map[string]any{"name": "Alice", "day": "Wednesday", "thing": "Go"}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = Strtr(in, m)
+	}
+}
+
+func BenchmarkTmpl_Large(b *testing.B) {
+	// Build a large template with repeated segments
+	part := "User:{ID},Name:{Name},Post:{Post},Q={Q};"
+	tpl := strings.Repeat(part, 200) // ~200 segments
+	data := map[string]any{"ID": 123, "Post": 456, "Q": "search", "Name": "alice"}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = Tmpl(tpl, "{", "}", data)
+	}
+}
+
+func BenchmarkTmpl_DensePlaceholders(b *testing.B) {
+	// Template with very dense placeholders
+	tpl := "{A}{B}{C}{D}{E}{F}{G}{H}{I}{J}{K}{L}{M}{N}{O}{P}{Q}{R}{S}{T}"
+	data := map[string]any{}
+	for i := 'A'; i <= 'T'; i++ {
+		data[string(i)] = int(i)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = Tmpl(tpl, "{", "}", data)
+	}
+}
+
+func BenchmarkTmpl(b *testing.B) {
+	tpl := "/users/{ID}/posts/{Post}?q={Q}"
+	data := map[string]any{"ID": 123, "Post": 456, "Q": "search"}
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = Tmpl(tpl, "{", "}", data)
+	}
+}
+
+func BenchmarkInterpolate_TagFunc(b *testing.B) {
+	tpl := "Hi, {name}! You have {n} messages."
+	vars := map[string]string{"name": "alice", "n": "7"}
+	fn := TagFunc(func(w io.Writer, tag string) (int, error) {
+		if v, ok := vars[tag]; ok {
+			// simulate some work
+			return w.Write([]byte(strings.ToUpper(v)))
+		}
+		return w.Write([]byte(""))
+	})
+	b.ReportAllocs()
+	for b.Loop() {
+		_, _ = Interpolate(tpl, "{", "}", &strings.Builder{}, fn)
+	}
+}
