@@ -177,7 +177,7 @@ func TestRoundTrip(t *testing.T) {
 		[]byte("hello"),
 		[]byte("你好世界"),
 		[]byte("Hello 世界 123!"),
-		[]byte{0, 1, 2, 255},
+		{0, 1, 2, 255},
 	}
 
 	for _, original := range testBytes {
