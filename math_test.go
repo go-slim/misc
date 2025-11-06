@@ -1,6 +1,7 @@
 package misc
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -415,44 +416,44 @@ func BenchmarkClamp(b *testing.B) {
 func ExampleMinMax() {
 	// Integer example
 	min, max := MinMax(5, 3)
-	println(min, max)
+	fmt.Println(min, max)
 	// Output: 3 5
 }
 
 func ExampleMinMax_int() {
 	// Integer example
 	min, max := MinMax(5, 3)
-	println(min, max)
+	fmt.Println(min, max)
 	// Output: 3 5
 }
 
 func ExampleMinMax_float64() {
 	// Float example
 	min, max := MinMax(1.5, 2.7)
-	println(min, max)
+	fmt.Println(min, max)
 	// Output: 1.5 2.7
 }
 
 func ExampleMinMax_string() {
 	// String example
 	min, max := MinMax("b", "a")
-	println(min, max)
+	fmt.Println(min, max)
 	// Output: a b
 }
 
 func ExampleClamp() {
 	// Within range
 	result := Clamp(15, 10, 20)
-	println(result)
+	fmt.Println(result)
 	// Below minimum
 	result = Clamp(5, 10, 20)
-	println(result)
+	fmt.Println(result)
 	// Above maximum
 	result = Clamp(25, 10, 20)
-	println(result)
+	fmt.Println(result)
 	// Bounds swapped (automatically handled)
 	result = Clamp(15, 20, 10)
-	println(result)
+	fmt.Println(result)
 	// Output: 15
 	// 10
 	// 20

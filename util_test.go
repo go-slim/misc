@@ -726,21 +726,21 @@ func ExampleZero_string() {
 func ExampleZero_bool() {
 	// Boolean zero
 	zeroBool := Zero[bool]()
-	println(zeroBool)
+	fmt.Println(zeroBool)
 	// Output: false
 }
 
 func ExamplePtr() {
 	// Create pointer to integer
 	ptr := Ptr(42)
-	println(*ptr)
+	fmt.Println(*ptr)
 	// Output: 42
 }
 
 func ExamplePtr_string() {
 	// Create pointer to string
 	strPtr := Ptr("hello world")
-	println(*strPtr)
+	fmt.Println(*strPtr)
 	// Output: hello world
 }
 
@@ -748,17 +748,17 @@ func ExampleNil() {
 	// Create nil pointer
 	var intPtr *int = Nil[int]()
 	if intPtr == nil {
-		println("pointer is nil")
+		fmt.Println("pointer is nil")
 	}
 	// Output: pointer is nil
 }
 
 func ExampleIsZero() {
 	// Check zero values
-	println(IsZero(0))     // true
-	println(IsZero(""))    // true
-	println(IsZero(false)) // true
-	println(IsZero(42))    // false
+	fmt.Println(IsZero(0))     // true
+	fmt.Println(IsZero(""))    // true
+	fmt.Println(IsZero(false)) // true
+	fmt.Println(IsZero(42))    // false
 	// Output: true
 	// true
 	// true
@@ -767,11 +767,11 @@ func ExampleIsZero() {
 
 func ExampleIsNil() {
 	// Check nil values
-	println(IsNil(nil))            // true
-	println(IsNil((*int)(nil)))    // true
-	println(IsNil([]int(nil)))     // true
-	println(IsNil(make(chan int))) // false
-	println(IsNil(42))             // false
+	fmt.Println(IsNil(nil))            // true
+	fmt.Println(IsNil((*int)(nil)))    // true
+	fmt.Println(IsNil([]int(nil)))     // true
+	fmt.Println(IsNil(make(chan int))) // false
+	fmt.Println(IsNil(42))             // false
 	// Output: true
 	// true
 	// true
@@ -782,14 +782,14 @@ func ExampleIsNil() {
 func ExampleCoalesce() {
 	// Return first non-zero value
 	result := Coalesce("", "default", "fallback")
-	println(result)
+	fmt.Println(result)
 	// Output: default
 }
 
 func ExampleCoalesce_int() {
 	// Return first non-zero int
 	result := Coalesce(0, 42, 100)
-	println(result)
+	fmt.Println(result)
 	// Output: 42
 }
 
