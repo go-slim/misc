@@ -16,8 +16,14 @@ import (
 // TagFunc must write contents to w and return the number of bytes written.
 type TagFunc func(w io.Writer, tag string) (int, error)
 
-// Strtr translate characters or replace substrings
-func Strtr(template string, data map[string]any) (string, error) {
+// Substitute replaces placeholders in template with values from data map.
+// It uses "{" and "}" as placeholder delimiters.
+//
+// Example:
+//
+//	result, err := Substitute("Hello {name}!", map[string]any{"name": "World"})
+//	// result: "Hello World!"
+func Substitute(template string, data map[string]any) (string, error) {
 	return Interpolate(template, "{", "}", data)
 }
 

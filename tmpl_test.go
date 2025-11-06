@@ -12,23 +12,23 @@ type testStringer int
 
 func (t testStringer) String() string { return fmt.Sprintf("S%d", int(t)) }
 
-func TestStrtr_Basic(t *testing.T) {
-	out, err := Strtr("Hello {name}, id={id}", map[string]any{
+func TestSubstitute_Basic(t *testing.T) {
+	out, err := Substitute("Hello {name}, id={id}", map[string]any{
 		"name": "Bob",
 		"id":   42,
 	})
 	if err != nil {
-		t.Fatalf("Strtr error: %v", err)
+		t.Fatalf("Substitute error: %v", err)
 	}
 	if out != "Hello Bob, id=42" {
 		t.Fatalf("unexpected output: %q", out)
 	}
 }
 
-func TestStrtr_StarFallback_AndUnknownKept(t *testing.T) {
-	out, err := Strtr("{a}-{b}-{c}", map[string]any{"*": "X", "b": "B"})
+func TestSubstitute_StarFallback_AndUnknownKept(t *testing.T) {
+	out, err := Substitute("{a}-{b}-{c}", map[string]any{"*": "X", "b": "B"})
 	if err != nil {
-		t.Fatalf("Strtr error: %v", err)
+		t.Fatalf("Substitute error: %v", err)
 	}
 	// a -> X via * , b -> B, c -> X via *
 	if out != "X-B-X" {
@@ -88,12 +88,12 @@ func TestTmpl_CallsTagFunc(t *testing.T) {
 }
 
 // Benchmark tests moved from bench_test.go
-func BenchmarkStrtr(b *testing.B) {
+func BenchmarkSubstitute(b *testing.B) {
 	in := "Hello, {name}! Today is {day}. {name} likes {thing}."
 	m := map[string]any{"name": "Alice", "day": "Wednesday", "thing": "Go"}
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = Strtr(in, m)
+		_, _ = Substitute(in, m)
 	}
 }
 

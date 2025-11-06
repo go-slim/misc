@@ -12,7 +12,7 @@
 - 摘要/密码：`MD5`、`Sha1`、`Sha256`、`PasswordHash`/`PasswordVerify`
 - 函数组合：`Call`/`CallG`、`Wrap`/`WrapG`
 - MIME 解析：`ExtensionByType`、`TypeByExtension`、`CharsetByType`
-- 模板插值：`Strtr`/`Interpolate`、`Tmpl`、`TagFunc`
+- 模板插值：`Substitute`/`Interpolate`、`Tmpl`、`TagFunc`
 - 堆栈信息：`Stack()`（包含源码行）**[已废弃]**
 - 零拷贝转换：`UnsafeBytesToString`、`UnsafeStringToBytes`（需谨慎使用）
 - 零值判断：`IsZero`（支持指针递归判断）
@@ -82,8 +82,8 @@ _ = []string{ext, typ, cs}
 ### 模板插值
 
 ```go
-// Strtr 使用 {key} 格式替换
-s, _ := misc.Strtr("Hello, {name}!", map[string]any{"name": "Alice"})
+// Substitute 使用 {key} 格式替换
+s, _ := misc.Substitute("Hello, {name}!", map[string]any{"name": "Alice"})
 fmt.Println(s) // Hello, Alice!
 
 // Interpolate 使用自定义标签和 map 数据
