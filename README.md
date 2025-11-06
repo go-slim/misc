@@ -49,12 +49,25 @@ func main() {
 ### 函数组合/封装
 
 ```go
-v, err := misc.Call(func() (int, error) { return 42, nil })
-_ = misc.MustCall(func() (string, error) { return "ok", nil })
+// Call 按顺序执行多个函数，遇到错误立即返回
+err := misc.Call(
+    func() error { fmt.Println("step 1"); return nil },
+    func() error { fmt.Println("step 2"); return nil },
+)
 
-wrapped := misc.Wrap(func(a int) int { return a * 2 })
-result := wrapped(21) // 42
-_ = result
+// CallG 使用相同参数调用多个函数
+err = misc.CallG(42,
+    func(v int) error { fmt.Println("value:", v); return nil },
+    func(v int) error { fmt.Println("doubled:", v*2); return nil },
+)
+
+// Wrap 将多个函数组合成一个函数
+wrapped := misc.Wrap(
+    func() error { return nil },
+    func() error { return nil },
+)
+_ = wrapped()
+_ = err
 ```
 
 ### MIME 解析
@@ -69,14 +82,20 @@ _ = []string{ext, typ, cs}
 ### 模板插值
 
 ```go
-s := misc.Strtr("Hello, {name}!", map[string]string{"{name}": "Alice"})
+// Strtr 使用 {key} 格式替换
+s, _ := misc.Strtr("Hello, {name}!", map[string]any{"name": "Alice"})
+fmt.Println(s) // Hello, Alice!
 
-out, _ := misc.Tmpl("/user/{{.ID}}?q={{.Q}}", map[string]any{"ID": 7, "Q": "k"})
+// Tmpl 使用自定义标签
+out, _ := misc.Tmpl("/user/{{ID}}?q={{Q}}", "{{", "}}", map[string]any{"ID": 7, "Q": "k"})
+fmt.Println(out) // /user/7?q=k
 
-// 高级：自定义标签函数
-upper := misc.TagFunc("upper", func(s string) string { return strings.ToUpper(s) })
-res, _ := misc.Interpolate("Hi, {{upper .Name}}", map[string]any{"Name": "bob"}, upper)
-_ = []string{s, out, res}
+// Interpolate 支持自定义 TagFunc
+var buf bytes.Buffer
+misc.Interpolate("value: {{x}}", "{{", "}}", &buf, func(w io.Writer, tag string) (int, error) {
+    return w.Write([]byte("42"))
+})
+fmt.Println(buf.String()) // value: 42
 ```
 
 ### 堆栈追踪
