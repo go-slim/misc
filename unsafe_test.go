@@ -1,6 +1,7 @@
 package misc
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -272,4 +273,61 @@ func BenchmarkUnsafeConversions(b *testing.B) {
 			_ = StringToBytes(s)
 		}
 	})
+}
+
+// Example tests for godoc
+
+func ExampleBytesToString() {
+	data := []byte("Hello, World!")
+	str := BytesToString(data)
+	fmt.Println(str)
+	fmt.Println("Type:", reflect.TypeOf(str))
+
+	// WARNING: Do not modify the original slice after conversion
+	// as they share the same underlying memory
+	// Output: Hello, World!
+	// Type: string
+}
+
+func ExampleStringToBytes() {
+	str := "Hello, Go!"
+	bytes := StringToBytes(str)
+	fmt.Println(string(bytes))
+	fmt.Println("Length:", len(bytes))
+
+	// WARNING: The returned slice is READ-ONLY
+	// Modifying it will cause undefined behavior
+	// Output: Hello, Go!
+	// Length: 10
+}
+
+func ExampleBytesToString_performance() {
+	// Zero-copy conversion is useful for performance-critical code
+	largeData := make([]byte, 1000)
+	for i := range largeData {
+		largeData[i] = 'A'
+	}
+
+	// No memory allocation for the conversion itself
+	str := BytesToString(largeData)
+	fmt.Println("Converted:", len(str), "bytes")
+
+	// Output: Converted: 1000 bytes
+}
+
+func ExampleStringToBytes_readonly() {
+	// Useful when you need to pass string data to APIs that accept []byte
+	// but you don't want to allocate a new slice
+	text := "Read-only data"
+	bytes := StringToBytes(text)
+
+	// Safe read operations
+	fmt.Println("First byte:", bytes[0])
+	fmt.Println("Length:", len(bytes))
+
+	// UNSAFE: Do NOT modify the bytes
+	// bytes[0] = 'X' // This would cause undefined behavior!
+
+	// Output: First byte: 82
+	// Length: 14
 }

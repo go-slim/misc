@@ -2,6 +2,7 @@ package misc
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -81,4 +82,125 @@ func TestWrapG(t *testing.T) {
 	if s != "hi!" {
 		t.Fatalf("unexpected s: %s", s)
 	}
+}
+
+// Example tests for godoc
+
+func ExampleCall() {
+	// Execute multiple functions in sequence
+	err := Call(
+		func() error {
+			fmt.Println("Step 1")
+			return nil
+		},
+		func() error {
+			fmt.Println("Step 2")
+			return nil
+		},
+		func() error {
+			fmt.Println("Step 3")
+			return nil
+		},
+	)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	// Output: Step 1
+	// Step 2
+	// Step 3
+}
+
+func ExampleCall_errorHandling() {
+	// Stops on first error
+	err := Call(
+		func() error {
+			fmt.Println("Step 1")
+			return nil
+		},
+		func() error {
+			return errors.New("something went wrong")
+		},
+		func() error {
+			fmt.Println("Step 3 - not executed")
+			return nil
+		},
+	)
+	fmt.Println("Error:", err)
+	// Output: Step 1
+	// Error: something went wrong
+}
+
+func ExampleCallG() {
+	// Execute multiple functions with the same parameter
+	value := 10
+	err := CallG(value,
+		func(v int) error {
+			fmt.Println("Value:", v)
+			return nil
+		},
+		func(v int) error {
+			fmt.Println("Doubled:", v*2)
+			return nil
+		},
+		func(v int) error {
+			fmt.Println("Tripled:", v*3)
+			return nil
+		},
+	)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	// Output: Value: 10
+	// Doubled: 20
+	// Tripled: 30
+}
+
+func ExampleWrap() {
+	// Create a composite function
+	var results []int
+	composedFunc := Wrap(
+		func() error {
+			results = append(results, 1)
+			return nil
+		},
+		func() error {
+			results = append(results, 2)
+			return nil
+		},
+		func() error {
+			results = append(results, 3)
+			return nil
+		},
+	)
+
+	// Execute the composed function
+	_ = composedFunc()
+	fmt.Println("First call:", results)
+
+	// Execute again
+	_ = composedFunc()
+	fmt.Println("Second call:", results)
+	// Output: First call: [1 2 3]
+	// Second call: [1 2 3 1 2 3]
+}
+
+func ExampleWrapG() {
+	// Create a composite function with parameters
+	processString := WrapG(
+		func(s string) error {
+			fmt.Println("Processing:", s)
+			return nil
+		},
+		func(s string) error {
+			fmt.Println("Length:", len(s))
+			return nil
+		},
+	)
+
+	_ = processString("Hello")
+	_ = processString("World!")
+	// Output: Processing: Hello
+	// Length: 5
+	// Processing: World!
+	// Length: 6
 }

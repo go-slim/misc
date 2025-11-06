@@ -1,6 +1,9 @@
 package misc
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestExtensionByType_Builtin(t *testing.T) {
 	ext := ExtensionByType("image/jpeg")
@@ -37,4 +40,48 @@ func TestCharsetByType(t *testing.T) {
 	if got := CharsetByType("application/json"); got != "" {
 		t.Fatalf("CharsetByType(application/json) = %q, want empty", got)
 	}
+}
+
+// Example tests for godoc
+
+func ExampleExtensionByType() {
+	ext := ExtensionByType("image/png")
+	fmt.Println(ext)
+
+	ext = ExtensionByType("video/mp4")
+	fmt.Println(ext)
+
+	ext = ExtensionByType("audio/mpeg")
+	fmt.Println(ext)
+	// Output: .png
+	// .mp4
+	// .mpg
+}
+
+func ExampleTypeByExtension() {
+	typ := TypeByExtension(".json")
+	fmt.Println(typ)
+
+	typ = TypeByExtension("jpg") // Works without dot
+	fmt.Println(typ)
+
+	typ = TypeByExtension(".webp")
+	fmt.Println(typ)
+	// Output: application/json
+	// image/jpeg
+	// image/webp
+}
+
+func ExampleTypeByExtension_audioVideo() {
+	// Audio formats
+	fmt.Println(TypeByExtension(".mp3"))
+	fmt.Println(TypeByExtension(".wav"))
+
+	// Video formats
+	fmt.Println(TypeByExtension(".mp4"))
+	fmt.Println(TypeByExtension(".webm"))
+	// Output: audio/mp3
+	// audio/wav
+	// video/mp4
+	// video/webm
 }

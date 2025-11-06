@@ -1,6 +1,7 @@
 package misc
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -106,4 +107,53 @@ func BenchmarkPasswordHash_Cost(b *testing.B) {
 			}
 		})
 	}
+}
+
+// Example tests for godoc
+
+func ExampleMD5() {
+	hash := MD5("hello")
+	fmt.Println(hash)
+	// Output: 5D41402ABC4B2A76B9719D911017C592
+}
+
+func ExampleSha1() {
+	hash := Sha1("hello")
+	fmt.Println(hash)
+	// Output: aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d
+}
+
+func ExampleSha256() {
+	hash := Sha256("hello")
+	fmt.Println(hash)
+	// Output: 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
+}
+
+func ExamplePasswordHash() {
+	password := "MySecretPassword123"
+	hash, err := PasswordHash(password)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	// The hash will be different each time due to salt
+	fmt.Println("Hash generated successfully, length:", len(hash))
+	// Output: Hash generated successfully, length: 60
+}
+
+func ExamplePasswordVerify() {
+	password := "MySecretPassword123"
+	hash, _ := PasswordHash(password)
+
+	// Verify correct password
+	if PasswordVerify(password, hash) {
+		fmt.Println("Correct password")
+	}
+
+	// Verify wrong password
+	if !PasswordVerify("WrongPassword", hash) {
+		fmt.Println("Wrong password rejected")
+	}
+	// Output: Correct password
+	// Wrong password rejected
 }

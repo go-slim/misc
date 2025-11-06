@@ -145,3 +145,71 @@ func BenchmarkTmpl_TagFunc(b *testing.B) {
 		_, _ = Tmpl(tpl, "{", "}", &strings.Builder{}, fn)
 	}
 }
+
+// Example tests for godoc
+
+func ExampleSubstitute() {
+	result, _ := Substitute("Hello, {name}! Welcome to {place}.", map[string]any{
+		"name":  "Alice",
+		"place": "Wonderland",
+	})
+	fmt.Println(result)
+	// Output: Hello, Alice! Welcome to Wonderland.
+}
+
+func ExampleSubstitute_fallback() {
+	// Using "*" as fallback value
+	result, _ := Substitute("User: {user}, Action: {action}, Time: {time}", map[string]any{
+		"user": "Bob",
+		"*":    "N/A",
+	})
+	fmt.Println(result)
+	// Output: User: Bob, Action: N/A, Time: N/A
+}
+
+func ExampleInterpolate() {
+	// Custom delimiters
+	result, _ := Interpolate("Welcome [[name]]! Your ID is [[id]].", "[[", "]]", map[string]any{
+		"name": "Charlie",
+		"id":   12345,
+	})
+	fmt.Println(result)
+	// Output: Welcome Charlie! Your ID is 12345.
+}
+
+func ExampleInterpolate_variousTypes() {
+	result, _ := Interpolate(
+		"Bool: {bool}, Int: {int}, Float: {float}, String: {str}",
+		"{", "}",
+		map[string]any{
+			"bool":  true,
+			"int":   42,
+			"float": 3.14,
+			"str":   "hello",
+		},
+	)
+	fmt.Println(result)
+	// Output: Bool: true, Int: 42, Float: 3.14, String: hello
+}
+
+func ExampleTmpl() {
+	var buf strings.Builder
+
+	// Custom tag function for advanced processing
+	tagFunc := func(w io.Writer, tag string) (int, error) {
+		switch tag {
+		case "upper":
+			return w.Write([]byte("HELLO"))
+		case "lower":
+			return w.Write([]byte("world"))
+		case "repeat":
+			return w.Write([]byte("go! go! go!"))
+		default:
+			return w.Write([]byte("???"))
+		}
+	}
+
+	Tmpl("Say: {{upper}} {{lower}}, {{repeat}}", "{{", "}}", &buf, tagFunc)
+	fmt.Println(buf.String())
+	// Output: Say: HELLO world, go! go! go!
+}
