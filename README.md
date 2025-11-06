@@ -12,7 +12,7 @@
 - 摘要/密码：`MD5`、`Sha1`、`Sha256`、`PasswordHash`/`PasswordVerify`
 - 函数组合：`Call`/`CallG`、`Wrap`/`WrapG`
 - MIME 解析：`ExtensionByType`、`TypeByExtension`、`CharsetByType`
-- 模板插值：`Strtr`/`Tmpl`、`Interpolate`、`TagFunc`
+- 模板插值：`Strtr`/`Interpolate`、`Tmpl`、`TagFunc`
 - 堆栈信息：`Stack()`（包含源码行）**[已废弃]**
 - 零拷贝转换：`UnsafeBytesToString`、`UnsafeStringToBytes`（需谨慎使用）
 - 零值判断：`IsZero`（支持指针递归判断）
@@ -86,13 +86,13 @@ _ = []string{ext, typ, cs}
 s, _ := misc.Strtr("Hello, {name}!", map[string]any{"name": "Alice"})
 fmt.Println(s) // Hello, Alice!
 
-// Tmpl 使用自定义标签
-out, _ := misc.Tmpl("/user/{{ID}}?q={{Q}}", "{{", "}}", map[string]any{"ID": 7, "Q": "k"})
+// Interpolate 使用自定义标签和 map 数据
+out, _ := misc.Interpolate("/user/{{ID}}?q={{Q}}", "{{", "}}", map[string]any{"ID": 7, "Q": "k"})
 fmt.Println(out) // /user/7?q=k
 
-// Interpolate 支持自定义 TagFunc
+// Tmpl 是底层函数，支持自定义 TagFunc
 var buf bytes.Buffer
-misc.Interpolate("value: {{x}}", "{{", "}}", &buf, func(w io.Writer, tag string) (int, error) {
+misc.Tmpl("value: {{x}}", "{{", "}}", &buf, func(w io.Writer, tag string) (int, error) {
     return w.Write([]byte("42"))
 })
 fmt.Println(buf.String()) // value: 42

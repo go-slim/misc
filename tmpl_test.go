@@ -36,10 +36,10 @@ func TestStrtr_StarFallback_AndUnknownKept(t *testing.T) {
 	}
 }
 
-func TestTmpl_CustomDelimiters_AndTypes(t *testing.T) {
+func TestInterpolate_CustomDelimiters_AndTypes(t *testing.T) {
 	name := "Ann"
 	bytesVal := []byte("BYTES")
-	out, err := Tmpl("[[s]]|[[p]]|[[b]]|[[sb]]|[[str]]|[[def]]|[[unk]]", "[[", "]]", map[string]any{
+	out, err := Interpolate("[[s]]|[[p]]|[[b]]|[[sb]]|[[str]]|[[def]]|[[unk]]", "[[", "]]", map[string]any{
 		"s":   "hi",
 		"p":   &name,
 		"b":   bytesVal,
@@ -56,9 +56,9 @@ func TestTmpl_CustomDelimiters_AndTypes(t *testing.T) {
 	}
 }
 
-func TestInterpolate_UnmatchedEndWritesLiteralStart(t *testing.T) {
+func TestTmpl_UnmatchedEndWritesLiteralStart(t *testing.T) {
 	var buf strings.Builder
-	n, err := Interpolate("pre {no_end tail", "{", "}", &buf, func(w io.Writer, tag string) (int, error) {
+	n, err := Tmpl("pre {no_end tail", "{", "}", &buf, func(w io.Writer, tag string) (int, error) {
 		return 0, nil
 	})
 	if err != nil {
@@ -69,10 +69,10 @@ func TestInterpolate_UnmatchedEndWritesLiteralStart(t *testing.T) {
 	}
 }
 
-func TestInterpolate_CallsTagFunc(t *testing.T) {
+func TestTmpl_CallsTagFunc(t *testing.T) {
 	var buf bytes.Buffer
 	var seen []string
-	_, err := Interpolate("A{one}B{two}C", "{", "}", &buf, func(w io.Writer, tag string) (int, error) {
+	_, err := Tmpl("A{one}B{two}C", "{", "}", &buf, func(w io.Writer, tag string) (int, error) {
 		seen = append(seen, tag)
 		return w.Write([]byte(strings.ToUpper(tag)))
 	})
@@ -97,18 +97,18 @@ func BenchmarkStrtr(b *testing.B) {
 	}
 }
 
-func BenchmarkTmpl_Large(b *testing.B) {
+func BenchmarkInterpolate_Large(b *testing.B) {
 	// Build a large template with repeated segments
 	part := "User:{ID},Name:{Name},Post:{Post},Q={Q};"
 	tpl := strings.Repeat(part, 200) // ~200 segments
 	data := map[string]any{"ID": 123, "Post": 456, "Q": "search", "Name": "alice"}
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = Tmpl(tpl, "{", "}", data)
+		_, _ = Interpolate(tpl, "{", "}", data)
 	}
 }
 
-func BenchmarkTmpl_DensePlaceholders(b *testing.B) {
+func BenchmarkInterpolate_DensePlaceholders(b *testing.B) {
 	// Template with very dense placeholders
 	tpl := "{A}{B}{C}{D}{E}{F}{G}{H}{I}{J}{K}{L}{M}{N}{O}{P}{Q}{R}{S}{T}"
 	data := map[string]any{}
@@ -117,20 +117,20 @@ func BenchmarkTmpl_DensePlaceholders(b *testing.B) {
 	}
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = Tmpl(tpl, "{", "}", data)
+		_, _ = Interpolate(tpl, "{", "}", data)
 	}
 }
 
-func BenchmarkTmpl(b *testing.B) {
+func BenchmarkInterpolateTemp(b *testing.B) {
 	tpl := "/users/{ID}/posts/{Post}?q={Q}"
 	data := map[string]any{"ID": 123, "Post": 456, "Q": "search"}
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = Tmpl(tpl, "{", "}", data)
+		_, _ = Interpolate(tpl, "{", "}", data)
 	}
 }
 
-func BenchmarkInterpolate_TagFunc(b *testing.B) {
+func BenchmarkTmpl_TagFunc(b *testing.B) {
 	tpl := "Hi, {name}! You have {n} messages."
 	vars := map[string]string{"name": "alice", "n": "7"}
 	fn := TagFunc(func(w io.Writer, tag string) (int, error) {
@@ -142,6 +142,6 @@ func BenchmarkInterpolate_TagFunc(b *testing.B) {
 	})
 	b.ReportAllocs()
 	for b.Loop() {
-		_, _ = Interpolate(tpl, "{", "}", &strings.Builder{}, fn)
+		_, _ = Tmpl(tpl, "{", "}", &strings.Builder{}, fn)
 	}
 }

@@ -18,12 +18,12 @@ type TagFunc func(w io.Writer, tag string) (int, error)
 
 // Strtr translate characters or replace substrings
 func Strtr(template string, data map[string]any) (string, error) {
-	return Tmpl(template, "{", "}", data)
+	return Interpolate(template, "{", "}", data)
 }
 
-func Tmpl(template, startTag, endTag string, data map[string]any) (string, error) {
+func Interpolate(template, startTag, endTag string, data map[string]any) (string, error) {
 	var sb strings.Builder
-	_, err := Interpolate(template, startTag, endTag, &sb, func(w io.Writer, tag string) (int, error) {
+	_, err := Tmpl(template, startTag, endTag, &sb, func(w io.Writer, tag string) (int, error) {
 		if value, ok := data[tag]; ok {
 			return write(w, value)
 		}
@@ -67,10 +67,10 @@ func write(w io.Writer, value any) (int, error) {
 	}
 }
 
-// Interpolate calls f on each template tag (placeholder) occurrence.
+// Tmpl calls f on each template tag (placeholder) occurrence.
 //
 // Returns the number of bytes written to w.
-func Interpolate(template, startTag, endTag string, w io.Writer, f TagFunc) (int64, error) {
+func Tmpl(template, startTag, endTag string, w io.Writer, f TagFunc) (int64, error) {
 	s := StringToBytes(template)
 	a := StringToBytes(startTag)
 	b := StringToBytes(endTag)
