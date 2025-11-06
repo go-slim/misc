@@ -2,32 +2,30 @@
 
 ![CI](https://github.com/go-slim/misc/actions/workflows/ci.yml/badge.svg)
 
-A general-purpose utility library providing common tools and types, covering digest/password, functional composition, MIME parsing, template interpolation, stack information, zero-copy conversion, and zero value checks.
+通用实用库，提供常用的工具函数与类型，覆盖摘要/密码、函数式封装、MIME 解析、模板插值、堆栈信息、零拷贝转换与零值判断等能力。
 
-[中文文档](README.zh-CN.md)
+- 模块路径：`go-slim.dev/misc`
+- Go 版本：`1.24`
 
-- Module path: `go-slim.dev/misc`
-- Go version: `1.24`
+## 功能概览
 
-## Features
+- 摘要/密码：`MD5`、`Sha1`、`Sha256`、`PasswordHash`/`PasswordVerify`
+- 函数组合：`Call`/`CallG`、`Wrap`/`WrapG`
+- MIME 解析：`ExtensionByType`、`TypeByExtension`、`CharsetByType`
+- 模板插值：`Substitute`/`Interpolate`、`Tmpl`、`TagFunc`
+- 堆栈信息：`Stack()`（包含源码行）**[已废弃]**
+- 零拷贝转换：`UnsafeBytesToString`、`UnsafeStringToBytes`（需谨慎使用）
+- 零值判断：`IsZero`（支持指针递归判断）
 
-- **Digest/Password**: `MD5`, `Sha1`, `Sha256`, `PasswordHash`/`PasswordVerify`
-- **Function composition**: `Call`/`CallG`, `Wrap`/`WrapG`
-- **MIME parsing**: `ExtensionByType`, `TypeByExtension`, `CharsetByType`
-- **Template interpolation**: `Substitute`/`Interpolate`, `Tmpl`, `TagFunc`
-- **Stack information**: `Stack()` (includes source code lines) **[Deprecated]**
-- **Zero-copy conversion**: `UnsafeBytesToString`, `UnsafeStringToBytes` (use with caution)
-- **Zero value checks**: `IsZero` (supports recursive pointer checking)
-
-## Installation
+## 安装
 
 ```bash
 go get go-slim.dev/misc
 ```
 
-## Quick Examples
+## 快速示例
 
-### Digest and Password
+### 摘要与密码
 
 ```go
 package main
@@ -48,22 +46,22 @@ func main() {
 }
 ```
 
-### Function Composition
+### 函数组合/封装
 
 ```go
-// Call executes functions sequentially, stops on first error
+// Call 按顺序执行多个函数，遇到错误立即返回
 err := misc.Call(
     func() error { fmt.Println("step 1"); return nil },
     func() error { fmt.Println("step 2"); return nil },
 )
 
-// CallG calls multiple functions with the same parameter
+// CallG 使用相同参数调用多个函数
 err = misc.CallG(42,
     func(v int) error { fmt.Println("value:", v); return nil },
     func(v int) error { fmt.Println("doubled:", v*2); return nil },
 )
 
-// Wrap combines multiple functions into one
+// Wrap 将多个函数组合成一个函数
 wrapped := misc.Wrap(
     func() error { return nil },
     func() error { return nil },
@@ -72,7 +70,7 @@ _ = wrapped()
 _ = err
 ```
 
-### MIME Parsing
+### MIME 解析
 
 ```go
 ext := misc.ExtensionByType("application/json; charset=utf-8") // .json
@@ -81,18 +79,18 @@ cs  := misc.CharsetByType("text/html; charset=utf-8")          // utf-8
 _ = []string{ext, typ, cs}
 ```
 
-### Template Interpolation
+### 模板插值
 
 ```go
-// Substitute uses {key} format for replacement
+// Substitute 使用 {key} 格式替换
 s, _ := misc.Substitute("Hello, {name}!", map[string]any{"name": "Alice"})
 fmt.Println(s) // Hello, Alice!
 
-// Interpolate uses custom tags with map data
+// Interpolate 使用自定义标签和 map 数据
 out, _ := misc.Interpolate("/user/{{ID}}?q={{Q}}", "{{", "}}", map[string]any{"ID": 7, "Q": "k"})
 fmt.Println(out) // /user/7?q=k
 
-// Tmpl is the low-level function supporting custom TagFunc
+// Tmpl 是底层函数，支持自定义 TagFunc
 var buf bytes.Buffer
 misc.Tmpl("value: {{x}}", "{{", "}}", &buf, func(w io.Writer, tag string) (int, error) {
     return w.Write([]byte("42"))
@@ -100,40 +98,40 @@ misc.Tmpl("value: {{x}}", "{{", "}}", &buf, func(w io.Writer, tag string) (int, 
 fmt.Println(buf.String()) // value: 42
 ```
 
-### Stack Trace
+### 堆栈追踪
 
 ```go
-trace := misc.Stack(0) // Skip 0 frames, includes function, file, and line number
+trace := misc.Stack(0) // 跳过 0 层，包含函数、文件与行号
 fmt.Println(trace)
 ```
 
-### Zero-Copy Conversion (Unsafe)
+### 零拷贝转换（危险）
 
 ```go
-// Warning: Use only when you fully understand the risks!
+// 注意：仅在明确理解风险时使用！
 b := []byte("hello")
 s := misc.UnsafeBytesToString(b)
 bs := misc.UnsafeStringToBytes(s)
 _ = []any{s, bs}
 ```
 
-### Zero Value Checks
+### 零值判断
 
 ```go
 type T struct{ N int }
 var p *T
 _ = misc.IsZero(0)   // true
 _ = misc.IsZero("")  // true
-_ = misc.IsZero(p)   // true (nil pointer)
+_ = misc.IsZero(p)   // true（nil 指针）
 _ = misc.IsZero(T{}) // true
 ```
 
-## Running Tests
+## 运行测试
 
 ```bash
 go test ./...
 ```
 
-## License
+## 许可证
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+本项目使用 MIT License，详见 `LICENSE`。
