@@ -10,13 +10,13 @@ import (
 // Deprecated: This variable will be removed in a future version.
 var unknown = []byte("???")
 
-// Stack will skip back the provided number of frames and return a stack trace with source code.
-// Although we could just use debug.Stack(), this routine will return the source code and
-// skip back the provided number of frames - i.e. allowing us to ignore preceding function calls.
-// A skip of 0 returns the stack trace for the calling function, not including this call.
-// If the problem is a lack of memory of course all this is not going to work...
-// Stack returns stack information with source code lines. The skip parameter is used to skip preceding frames (0 means caller).
-// The difference from debug.Stack is: this function attempts to output corresponding source code lines simultaneously, making it easier to locate.
+// Stack returns a stack trace with source code lines.
+// The skip parameter specifies how many stack frames to skip (0 means the caller of Stack).
+//
+// Unlike debug.Stack(), this function includes the actual source code line for each frame,
+// making it easier to debug. However, it requires access to source files.
+//
+// Note: If source files are not available or memory is insufficient, some lines may show "???".
 //
 // Deprecated: This function will be removed in a future version. Use runtime.Stack or debug.Stack instead.
 func Stack(skip int) string {
@@ -51,8 +51,9 @@ func Stack(skip int) string {
 	return buf.String()
 }
 
-// functionName converts the provided programCounter into a function name
-// functionName converts program counter to simplified function name (removing package path and package name).
+// functionName converts program counter to a simplified function name.
+// It removes the full package path and package name, keeping only the function name.
+// For example, "github.com/user/pkg.MyFunc" becomes "MyFunc".
 //
 // Deprecated: This function will be removed in a future version.
 func functionName(programCounter uintptr) []byte {
@@ -75,8 +76,8 @@ func functionName(programCounter uintptr) []byte {
 	return name
 }
 
-// source returns a space-trimmed slice of the n'th line.
-// source returns the trimmed text of line n (1-based), returns "???" when out of bounds.
+// source returns the trimmed text of the nth line (1-based line number).
+// Returns "???" if the line number is out of bounds.
 //
 // Deprecated: This function will be removed in a future version.
 func source(lines [][]byte, n int) []byte {

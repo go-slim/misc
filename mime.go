@@ -85,9 +85,13 @@ func TypeByExtension(ext string) string {
 	return mime.TypeByExtension(ext)
 }
 
-// CharsetByType returns "charset=utf-8" for text/* types, otherwise returns empty string.
+// CharsetByType returns "charset=utf-8" for text/* MIME types, otherwise returns empty string.
 //
-// Deprecated: No longer supported.
+// Note: This function doesn't actually parse the charset parameter from the MIME type string.
+// It simply checks if the type starts with "text/" and returns a hardcoded "charset=utf-8" value.
+// For proper MIME type parsing, consider using mime.ParseMediaType from the standard library.
+//
+// Deprecated: This function has limited usefulness and will be removed in a future version.
 func CharsetByType(typ string) string {
 	if strings.HasPrefix(typ, "text/") {
 		return "charset=utf-8"

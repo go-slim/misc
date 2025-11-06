@@ -27,6 +27,18 @@ func Substitute(template string, data map[string]any) (string, error) {
 	return Interpolate(template, "{", "}", data)
 }
 
+// Interpolate replaces placeholders in template with values from data map using custom delimiters.
+// It processes the template string and replaces tags enclosed by startTag and endTag with corresponding values from the data map.
+//
+// Special handling:
+//   - If a tag is found in the data map, its value is written to the output
+//   - If a tag is not found but "*" exists in the map, the "*" value is used as fallback
+//   - If neither exists, the original tag with delimiters is kept in the output
+//
+// Example:
+//
+//	result, err := Interpolate("/user/{{ID}}?q={{Q}}", "{{", "}}", map[string]any{"ID": 7, "Q": "search"})
+//	// result: "/user/7?q=search"
 func Interpolate(template, startTag, endTag string, data map[string]any) (string, error) {
 	var sb strings.Builder
 	_, err := Tmpl(template, startTag, endTag, &sb, func(w io.Writer, tag string) (int, error) {
@@ -47,6 +59,15 @@ func Interpolate(template, startTag, endTag string, data map[string]any) (string
 	return sb.String(), nil
 }
 
+// write converts a value to string and writes it to the writer.
+// It handles various types efficiently:
+//   - nil values: writes nothing
+//   - bool: uses strconv.FormatBool
+//   - numeric types: uses fmt.Fprintf with %v for proper formatting
+//   - string and *string: writes directly
+//   - []byte and *[]byte: writes as bytes
+//   - fmt.Stringer: calls String() method
+//   - other types: uses fmt.Fprintf with %v
 func write(w io.Writer, value any) (int, error) {
 	if value == nil {
 		return 0, nil
@@ -57,7 +78,7 @@ func write(w io.Writer, value any) (int, error) {
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64,
 		float32, float64:
-		return fmt.Fprintf(w, "%d", v)
+		return fmt.Fprintf(w, "%v", v)
 	case string:
 		return w.(*strings.Builder).WriteString(v)
 	case *string:
