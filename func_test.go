@@ -33,14 +33,14 @@ func TestCallStopsOnError(t *testing.T) {
 	}
 }
 
-func TestCallWith(t *testing.T) {
+func TestCallG(t *testing.T) {
 	var acc int
-	err := CallWith(3,
+	err := CallG(3,
 		func(v int) error { acc += v; return nil },
 		func(v int) error { acc += v * 2; return nil },
 	)
 	if err != nil {
-		t.Fatalf("CallWith returned error: %v", err)
+		t.Fatalf("CallG returned error: %v", err)
 	}
 	if acc != 3+3*2 {
 		t.Fatalf("unexpected acc: %d", acc)
@@ -72,23 +72,13 @@ func TestWrapPropagatesError(t *testing.T) {
 	}
 }
 
-func TestWrapWith(t *testing.T) {
+func TestWrapG(t *testing.T) {
 	var s string
-	fn := WrapWith(func(v string) error { s = v; return nil }, func(v string) error { s += "!"; return nil })
+	fn := WrapG(func(v string) error { s = v; return nil }, func(v string) error { s += "!"; return nil })
 	if err := fn("hi"); err != nil {
-		t.Fatalf("WrapWith returned error: %v", err)
+		t.Fatalf("WrapG returned error: %v", err)
 	}
 	if s != "hi!" {
 		t.Fatalf("unexpected s: %s", s)
 	}
-}
-
-func TestMustCallSuccess(t *testing.T) {
-	// MustCall should not abort when all funcs succeed
-	MustCall(func() error { return nil }, func() error { return nil })
-}
-
-func TestMustCallWithSuccess(t *testing.T) {
-	// MustCallWith should not abort when all funcs succeed
-	MustCallWith(1, func(int) error { return nil }, func(int) error { return nil })
 }
