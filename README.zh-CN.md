@@ -11,11 +11,12 @@
 
 - 摘要/密码：`MD5`、`Sha1`、`Sha256`、`PasswordHash`/`PasswordVerify`
 - 函数组合：`Call`/`CallG`、`Wrap`/`WrapG`
-- MIME 解析：`ExtensionByType`、`TypeByExtension`、`CharsetByType`
+- MIME 解析：`ExtensionByType`、`TypeByExtension`、`CharsetByType` **[已废弃]**
 - 模板插值：`Substitute`/`Interpolate`、`Tmpl`、`TagFunc`
+- 泛型工具：`Zero`、`Ptr`、`Nil`、`IsZero`、`IsNil`、`Coalesce`
+- 数学工具：`MinMax`、`Clamp`
+- 零拷贝转换：`BytesToString`、`StringToBytes`（需谨慎使用）
 - 堆栈信息：`Stack()`（包含源码行）**[已废弃]**
-- 零拷贝转换：`UnsafeBytesToString`、`UnsafeStringToBytes`（需谨慎使用）
-- 零值判断：`IsZero`（支持指针递归判断）
 
 ## 安装
 
@@ -70,13 +71,12 @@ _ = wrapped()
 _ = err
 ```
 
-### MIME 解析
+### MIME 解析（已废弃）
 
 ```go
-ext := misc.ExtensionByType("application/json; charset=utf-8") // .json
-typ := misc.TypeByExtension(".png")                            // image/png
-cs  := misc.CharsetByType("text/html; charset=utf-8")          // utf-8
-_ = []string{ext, typ, cs}
+ext := misc.ExtensionByType("image/png")      // .png
+typ := misc.TypeByExtension(".json")          // application/json
+cs  := misc.CharsetByType("text/plain")       // charset=utf-8
 ```
 
 ### 模板插值
@@ -98,11 +98,49 @@ misc.Tmpl("value: {{x}}", "{{", "}}", &buf, func(w io.Writer, tag string) (int, 
 fmt.Println(buf.String()) // value: 42
 ```
 
-### 堆栈追踪
+### 泛型工具
 
 ```go
-trace := misc.Stack(0) // 跳过 0 层，包含函数、文件与行号
-fmt.Println(trace)
+// 零值
+zeroInt := misc.Zero[int]()        // 0
+zeroStr := misc.Zero[string]()     // ""
+
+// 创建指针
+ptr := misc.Ptr(42)                // *int 指向 42
+strPtr := misc.Ptr("hello")        // *string 指向 "hello"
+
+// Nil 指针
+var intPtr *int = misc.Nil[int]()  // nil
+
+// 零值检查
+misc.IsZero(0)                     // true
+misc.IsZero("")                    // true
+misc.IsZero((*int)(nil))           // true
+misc.IsZero(42)                    // false
+
+// Nil 检查
+misc.IsNil(nil)                    // true
+misc.IsNil((*int)(nil))            // true
+misc.IsNil(42)                     // false
+
+// Coalesce（返回第一个非零值）
+result := misc.Coalesce("", "default", "fallback") // "default"
+result := misc.Coalesce(0, 42, 100)                // 42
+```
+
+### 数学工具
+
+```go
+// MinMax 返回 (最小值, 最大值)
+min, max := misc.MinMax(5, 3)           // (3, 5)
+min, max := misc.MinMax(1.5, 2.7)       // (1.5, 2.7)
+min, max := misc.MinMax("b", "a")       // ("a", "b")
+
+// Clamp 将值限制在范围内
+result := misc.Clamp(15, 10, 20)        // 15（在范围内）
+result := misc.Clamp(5, 10, 20)         // 10（低于最小值）
+result := misc.Clamp(25, 10, 20)        // 20（高于最大值）
+result := misc.Clamp(15, 20, 10)        // 15（自动交换边界）
 ```
 
 ### 零拷贝转换（危险）
@@ -110,20 +148,19 @@ fmt.Println(trace)
 ```go
 // 注意：仅在明确理解风险时使用！
 b := []byte("hello")
-s := misc.UnsafeBytesToString(b)
-bs := misc.UnsafeStringToBytes(s)
-_ = []any{s, bs}
+s := misc.BytesToString(b)       // 零拷贝转换
+bs := misc.StringToBytes(s)      // 零拷贝转换
+
+// 警告：转换后不要修改原始数据！
+// 它们共享相同的底层内存。
 ```
 
-### 零值判断
+### 堆栈追踪（已废弃）
 
 ```go
-type T struct{ N int }
-var p *T
-_ = misc.IsZero(0)   // true
-_ = misc.IsZero("")  // true
-_ = misc.IsZero(p)   // true（nil 指针）
-_ = misc.IsZero(T{}) // true
+trace := misc.Stack(0) // 跳过 0 层，包含函数、文件与行号
+fmt.Println(trace)
+// 建议使用 runtime.Stack 或 debug.Stack 替代
 ```
 
 ## 运行测试
