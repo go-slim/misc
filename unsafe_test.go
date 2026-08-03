@@ -225,7 +225,7 @@ func TestEdgeCases(t *testing.T) {
 func BenchmarkBytesToString(b *testing.B) {
 	data := []byte("this is a test string for benchmarking")
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = BytesToString(data)
 	}
 }
@@ -233,7 +233,7 @@ func BenchmarkBytesToString(b *testing.B) {
 func BenchmarkStringToBytes(b *testing.B) {
 	str := "this is a test string for benchmarking"
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = StringToBytes(str)
 	}
 }
@@ -242,7 +242,7 @@ func BenchmarkStringConversionStandard(b *testing.B) {
 	// Standard conversion for comparison
 	data := []byte("this is a test string for benchmarking")
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = string(data)
 	}
 }
@@ -251,7 +251,7 @@ func BenchmarkByteSliceConversionStandard(b *testing.B) {
 	// Standard conversion for comparison
 	str := "this is a test string for benchmarking"
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = []byte(str)
 	}
 }

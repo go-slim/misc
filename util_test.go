@@ -126,7 +126,7 @@ func TestZero(t *testing.T) {
 func TestPtr(t *testing.T) {
 	tests := []struct {
 		name string
-		x    interface{}
+		x    any
 	}{
 		{
 			name: "int pointer",
@@ -287,7 +287,7 @@ func TestNil(t *testing.T) {
 func TestIsZero(t *testing.T) {
 	tests := []struct {
 		name     string
-		value    interface{}
+		value    any
 		expected bool
 	}{
 		// Zero values
@@ -479,7 +479,7 @@ func TestIsZero(t *testing.T) {
 func TestIsNil(t *testing.T) {
 	tests := []struct {
 		name     string
-		value    interface{}
+		value    any
 		expected bool
 	}{
 		{
@@ -568,61 +568,61 @@ func TestIsNil(t *testing.T) {
 func TestCoalesce(t *testing.T) {
 	tests := []struct {
 		name     string
-		values   []interface{}
+		values   []any
 		testFunc func() any
-		expected interface{}
+		expected any
 	}{
 		{
 			name:     "first non-zero string",
-			values:   []interface{}{"", "default", "fallback"},
+			values:   []any{"", "default", "fallback"},
 			testFunc: func() any { return Coalesce("", "default", "fallback") },
 			expected: "default",
 		},
 		{
 			name:     "first non-zero int",
-			values:   []interface{}{0, 42, 100},
+			values:   []any{0, 42, 100},
 			testFunc: func() any { return Coalesce(0, 42, 100) },
 			expected: 42,
 		},
 		{
 			name:     "first non-zero bool",
-			values:   []interface{}{false, true},
+			values:   []any{false, true},
 			testFunc: func() any { return Coalesce(false, true) },
 			expected: true,
 		},
 		{
 			name:     "all zero values strings",
-			values:   []interface{}{"", "", ""},
+			values:   []any{"", "", ""},
 			testFunc: func() any { return Coalesce("", "", "") },
 			expected: "",
 		},
 		{
 			name:     "all zero values ints",
-			values:   []interface{}{0, 0, 0},
+			values:   []any{0, 0, 0},
 			testFunc: func() any { return Coalesce(0, 0, 0) },
 			expected: 0,
 		},
 		{
 			name:     "single value",
-			values:   []interface{}{"single"},
+			values:   []any{"single"},
 			testFunc: func() any { return Coalesce("single") },
 			expected: "single",
 		},
 		{
 			name:     "no values",
-			values:   []interface{}{},
+			values:   []any{},
 			testFunc: func() any { return Coalesce[string]() },
 			expected: "",
 		},
 		{
 			name:     "mixed types strings",
-			values:   []interface{}{"", "value", ""},
+			values:   []any{"", "value", ""},
 			testFunc: func() any { return Coalesce("", "value", "") },
 			expected: "value",
 		},
 		{
 			name:     "mixed types ints",
-			values:   []interface{}{0, 0, 5},
+			values:   []any{0, 0, 5},
 			testFunc: func() any { return Coalesce(0, 0, 5) },
 			expected: 5,
 		},
@@ -641,17 +641,17 @@ func TestCoalesce(t *testing.T) {
 // Benchmark tests
 func BenchmarkZero(b *testing.B) {
 	b.Run("int", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Zero[int]()
 		}
 	})
 	b.Run("string", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Zero[string]()
 		}
 	})
 	b.Run("pointer", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Zero[*int]()
 		}
 	})
@@ -659,50 +659,58 @@ func BenchmarkZero(b *testing.B) {
 
 func BenchmarkPtr(b *testing.B) {
 	b.Run("int", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		i := 0
+		for b.Loop() {
 			_ = Ptr(i)
+			i++
 		}
 	})
 	b.Run("string", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Ptr("test")
 		}
 	})
 	b.Run("struct", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		i := 0
+		for b.Loop() {
 			_ = Ptr(struct{ Val int }{Val: i})
+			i++
 		}
 	})
 }
 
 func BenchmarkIsNil(b *testing.B) {
 	b.Run("nil pointer", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = IsNil((*int)(nil))
 		}
 	})
 	b.Run("non-nil pointer", func(b *testing.B) {
 		ptr := Ptr(42)
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = IsNil(ptr)
 		}
 	})
 	b.Run("mixed", func(b *testing.B) {
 		values := []any{nil, Ptr(1), "", "test"}
-		for i := 0; i < b.N; i++ {
+		i := 0
+		for b.Loop() {
 			_ = IsNil(values[i%len(values)])
+			i++
 		}
 	})
 }
 
 func BenchmarkCoalesce(b *testing.B) {
 	b.Run("int", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		i := 0
+		for b.Loop() {
 			_ = Coalesce(0, i%2, 42)
+			i++
 		}
 	})
 	b.Run("string", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Coalesce("", "default", "fallback")
 		}
 	})
