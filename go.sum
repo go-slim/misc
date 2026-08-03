@@ -1,2 +1,4 @@
+go-slim.dev/nego v0.0.0-20260803125611-e0c27bb6d196 h1:ff5H+nu+5cMhlXhpL25+pvtS0ZMrRAWVdjV0ekSYHas=
+go-slim.dev/nego v0.0.0-20260803125611-e0c27bb6d196/go.mod h1:zc30O2JcfK53qVAcqiiBeMhMv4wsJvGl9pYyA7HEAdo=
 golang.org/x/crypto v0.43.0 h1:dduJYIi3A3KOfdGOHX8AVZ/jGiyPa3IbBozJ5kNuE04=
 golang.org/x/crypto v0.43.0/go.mod h1:BFbav4mRNlXJL4wNeejLpWxB7wMbc79PdRGhWKncxR0=
