@@ -1,0 +1,589 @@
+# go-slim.dev/misc
+
+> Complete LLM-oriented reference for a compact Go utility package covering HTTP request inspection, proxy-aware client IP extraction, digests and password hashing, sequential function composition, template interpolation, generic value helpers, ordered-value math, MIME lookup, stack rendering, and unsafe zero-copy conversions.
+
+## Project identity
+
+- Module and import path: `go-slim.dev/misc`
+- Package name: `misc`
+- Repository: `https://github.com/go-slim/misc`
+- Required Go version: 1.25.5 or later
+- Runtime dependencies outside the standard library:
+  - `go-slim.dev/nego`, used for shared HTTP method/media/header constants
+  - `golang.org/x/crypto/bcrypt`, used by password hashing
+- License: MIT; see `LICENSE`
+
+The package deliberately contains small, independent helpers. It does not provide routing, middleware composition for `net/http`, request binding, response rendering, validation, logging, configuration, or application lifecycle management.
+
+Use a standard-library operation directly when it is equally clear. In particular, use `mime.ParseMediaType` for media-type parsing, `runtime.Stack` or `debug.Stack` for ordinary stack traces, and normal conversions when the allocation avoided by the unsafe helpers is not material.
+
+## Public API summary
+
+```go
+package misc
+
+var ErrInvalidRedirectCode error
+
+func IsTLS(req *http.Request) bool
+func IsWebSocket(req *http.Request) bool
+func Scheme(req *http.Request) string
+func Redirect(w http.ResponseWriter, code int, url string) error
+
+type IPExtractor func(*http.Request) string
+type TrustOption func(*ipChecker)
+
+func RealIP(req *http.Request, extractors ...IPExtractor) string
+func ExtractIPDirect() IPExtractor
+func ExtractIPFromRealIPHeader(options ...TrustOption) IPExtractor
+func ExtractIPFromXFFHeader(options ...TrustOption) IPExtractor
+func TrustLoopback(v bool) TrustOption
+func TrustLinkLocal(v bool) TrustOption
+func TrustPrivateNet(v bool) TrustOption
+func TrustIPRange(ipRange *net.IPNet) TrustOption
+
+func MD5(str string) string
+func Sha1(str string) string
+func Sha256(str string) string
+func PasswordHash(password string) (string, error)
+func PasswordVerify(password, hash string) bool
+
+func Call(fns ...func() error) error
+func CallG[T any](value T, fns ...func(T) error) error
+func Wrap(fns ...func() error) func() error
+func WrapG[T any](fns ...func(T) error) func(T) error
+
+type TagFunc func(w io.Writer, tag string) (int, error)
+
+func Substitute(template string, data map[string]any) (string, error)
+func Interpolate(template, startTag, endTag string, data map[string]any) (string, error)
+func Tmpl(template, startTag, endTag string, w io.Writer, f TagFunc) (int64, error)
+
+func Zero[T any]() T
+func Ptr[T any](value T) *T
+func Nil[T any]() *T
+func IsZero[T any](value T) bool
+func IsNil(value any) bool
+func Coalesce[T any](values ...T) T
+
+func MinMax[T cmp.Ordered](a, b T) (min, max T)
+func Clamp[T cmp.Ordered](value, min, max T) T
+
+func BytesToString(value []byte) string
+func StringToBytes(value string) []byte
+
+// Deprecated APIs.
+func ExtensionByType(mimeType string) string
+func TypeByExtension(extension string) string
+func CharsetByType(mimeType string) string
+func Stack(skip int) string
+```
+
+`TrustOption` contains an unexported parameter type by design. Callers obtain values only through the exported constructor functions and pass them to a proxy-aware extractor.
+
+## HTTP request utilities
+
+### TLS detection
+
+```go
+if misc.IsTLS(r) {
+    // r.TLS is non-nil.
+}
+```
+
+`IsTLS` reports only whether `http.Request.TLS` is non-nil. It does not inspect `URL.Scheme` or forwarding headers. For an incoming Go server request, this identifies a direct TLS connection to the application.
+
+The function expects a non-nil request.
+
+### WebSocket upgrade detection
+
+```go
+if misc.IsWebSocket(r) {
+    // Upgrade: websocket
+    // Connection: ... upgrade ...
+}
+```
+
+`IsWebSocket` requires both:
+
+- `Upgrade` equals `websocket`, case-insensitively.
+- The lowercased `Connection` value contains `upgrade`.
+
+HTTP field names are inherently case-insensitive. The implementation also compares the relevant values case-insensitively. It only detects the upgrade request; it does not negotiate, hijack, or serve a WebSocket connection.
+
+### Request scheme
+
+```go
+scheme := misc.Scheme(r)
+```
+
+`Scheme` selects a value in this order:
+
+1. A non-nil `Request.TLS` returns `https`.
+2. A supported `X-Forwarded-Proto` value.
+3. A supported `X-Forwarded-Protocol` value.
+4. `X-Forwarded-Ssl: on` returns `https`.
+5. A supported `X-Url-Scheme` value.
+6. Otherwise `http`.
+
+Supported forwarded values are `http`, `https`, `ws`, and `wss`, compared case-insensitively. A forwarded value is returned with its original case. Invalid values are skipped so a lower-precedence field may still be considered.
+
+`Scheme` trusts these fields as supplied. It does not verify the directly connected peer. A deployment that relies on them must ensure its edge proxy removes or replaces client-supplied forwarding fields.
+
+### Redirect
+
+```go
+if err := misc.Redirect(w, http.StatusTemporaryRedirect, target); err != nil {
+    // Handle an invalid status code.
+}
+```
+
+`Redirect` accepts every integer from 300 through 308 inclusive. For a valid code it sets `Location`, calls `WriteHeader`, writes no body, and returns nil.
+
+For a code outside the accepted interval it returns `ErrInvalidRedirectCode` before changing headers or status. Use `errors.Is(err, misc.ErrInvalidRedirectCode)` for classification.
+
+Unlike `http.Redirect`, this helper does not escape the target, generate an HTML response body, or inspect the request method. Use `http.Redirect` when those behaviors are desired.
+
+## Client IP extraction
+
+Client IP extraction is a security policy, not merely string parsing. Every forwarding field is controlled by the client unless a trusted edge proxy removes the incoming value and writes its own.
+
+### RealIP orchestration
+
+```go
+ip := misc.RealIP(r)
+```
+
+Without extractors, `RealIP` reads only `Request.RemoteAddr`. With extractors it calls them in argument order and returns the first non-empty result. If every extractor returns an empty string, it falls back to `RemoteAddr`.
+
+```go
+var extractClientIP = misc.ExtractIPFromXFFHeader(
+    misc.TrustIPRange(trustedProxyNetwork),
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    ip := misc.RealIP(r, extractClientIP)
+    _ = ip
+}
+```
+
+The provided `ExtractIPFromXFFHeader` and `ExtractIPFromRealIPHeader` extractors fall back to `RemoteAddr` themselves when their field is absent, invalid, or rejected. Consequently, when `RemoteAddr` is valid, placing both provided extractors in one `RealIP` call does not create an XFF-then-X-Real-IP chain: the first extractor normally returns a non-empty fallback. Select the field your trusted proxy actually writes, or implement an application-specific `IPExtractor` when multiple-field precedence is required.
+
+All request functions expect a non-nil request.
+
+### Direct peer
+
+```go
+extract := misc.ExtractIPDirect()
+ip := extract(r)
+```
+
+`ExtractIPDirect` ignores proxy headers and reads `Request.RemoteAddr`:
+
+- `203.0.113.1:8080` becomes `203.0.113.1`.
+- `[2001:db8::1]:8080` becomes `2001:db8::1`.
+- Bare valid IPv4 and IPv6 values are accepted.
+- A malformed value returns an empty string.
+
+Use this policy for a server directly exposed to clients, or when the address of the immediate peer is the desired value.
+
+### Default trust categories
+
+Proxy-aware extractors create a trust checker with these categories enabled by default:
+
+- Loopback addresses according to `net.IP.IsLoopback`.
+- Link-local unicast addresses according to `net.IP.IsLinkLocalUnicast`.
+- Private addresses according to `net.IP.IsPrivate`, including RFC 1918 IPv4 and IPv6 unique-local addresses.
+
+Each category can be controlled independently:
+
+```go
+extract := misc.ExtractIPFromXFFHeader(
+    misc.TrustLoopback(false),
+    misc.TrustLinkLocal(false),
+    misc.TrustPrivateNet(false),
+)
+```
+
+Add an explicit network with `TrustIPRange`:
+
+```go
+_, network, err := net.ParseCIDR("203.0.113.0/24")
+if err != nil {
+    log.Fatal(err)
+}
+extract := misc.ExtractIPFromXFFHeader(misc.TrustIPRange(network))
+```
+
+`TrustIPRange` requires a non-nil `*net.IPNet`. Parse and validate configuration before constructing the extractor.
+
+### X-Real-IP
+
+```go
+extract := misc.ExtractIPFromRealIPHeader(options...)
+ip := extract(r)
+```
+
+The extractor:
+
+1. Reads `X-Real-IP`.
+2. Removes one surrounding `[` and `]`, allowing a bracketed IPv6 address.
+3. Parses the value with `net.ParseIP`.
+4. Returns the field value only if that address belongs to a trusted category or explicitly trusted range.
+5. Otherwise returns the direct peer from `RemoteAddr`.
+
+The trust decision applies to the address carried by `X-Real-IP`, matching the package's inherited extraction model. A public address in the field is rejected unless its range is explicitly trusted.
+
+### X-Forwarded-For
+
+```go
+extract := misc.ExtractIPFromXFFHeader(options...)
+ip := extract(r)
+```
+
+The extractor:
+
+1. Combines all `X-Forwarded-For` field lines with commas.
+2. Splits the combined value into individual hops.
+3. Appends the direct peer from `RemoteAddr`.
+4. Normalizes whitespace and optional IPv6 brackets.
+5. Validates every hop with `net.ParseIP`.
+6. Scans from the application side, right to left.
+7. Returns the first untrusted address.
+8. If every address is trusted, returns the leftmost address, which is furthest from the application.
+
+If any hop is malformed, the entire forwarding chain is considered unreliable and the direct peer is returned. If the direct peer itself is untrusted, it is returned before any client-supplied hop is considered.
+
+Example chain:
+
+```text
+X-Forwarded-For: client, external-proxy, trusted-proxy, private-proxy
+RemoteAddr:       loopback-proxy
+```
+
+If `trusted-proxy`, `private-proxy`, and `loopback-proxy` are trusted, but `external-proxy` is not, the result is `external-proxy`. The value to its left cannot be trusted because it was supplied through the first untrusted hop.
+
+## Digests and password hashing
+
+### MD5, SHA-1, and SHA-256
+
+```go
+md5Hex := misc.MD5("payload")
+sha1Hex := misc.Sha1("payload")
+sha256Hex := misc.Sha256("payload")
+```
+
+- `MD5` returns uppercase hexadecimal.
+- `Sha1` returns lowercase hexadecimal.
+- `Sha256` returns lowercase hexadecimal.
+
+MD5 and SHA-1 are cryptographically broken and must not be used for password hashing, signatures, authentication, or adversarial integrity checks. They remain useful only where an existing non-security protocol or checksum format explicitly requires them. SHA-256 is a digest, not a password-hashing function.
+
+### Password hashing
+
+```go
+hash, err := misc.PasswordHash(password)
+if err != nil {
+    return err
+}
+if !misc.PasswordVerify(password, hash) {
+    return errors.New("invalid credentials")
+}
+```
+
+`PasswordHash` uses bcrypt with `bcrypt.DefaultCost` and returns the encoded hash as a string. Hashing can return an error, including for passwords longer than bcrypt's supported input limit.
+
+`PasswordVerify` returns true only when `bcrypt.CompareHashAndPassword` succeeds. It returns false both for a password mismatch and for a malformed hash; use the bcrypt package directly if the distinction is required.
+
+## Sequential function composition
+
+### Call and CallG
+
+```go
+err := misc.Call(load, validate, save)
+
+err = misc.CallG(value,
+    func(value Input) error { return validate(value) },
+    func(value Input) error { return persist(value) },
+)
+```
+
+Both helpers execute functions in declaration order and return immediately on the first non-nil error. With no functions they return nil. A nil function is not ignored and will panic when reached.
+
+### Wrap and WrapG
+
+```go
+operation := misc.Wrap(load, validate, save)
+err := operation()
+
+operationWithInput := misc.WrapG(validate, persist)
+err = operationWithInput(value)
+```
+
+`Wrap` and `WrapG` capture a function list and return a reusable function that delegates to `Call` or `CallG`. The functions are not executed until the returned wrapper is invoked.
+
+## Template interpolation
+
+### Substitute
+
+```go
+output, err := misc.Substitute(
+    "Hello, {name}!",
+    map[string]any{"name": "Alice"},
+)
+```
+
+`Substitute` is equivalent to `Interpolate(template, "{", "}", data)`.
+
+### Interpolate
+
+```go
+output, err := misc.Interpolate(
+    "/users/{{id}}?page={{page}}",
+    "{{",
+    "}}",
+    map[string]any{"id": 42, "page": 2},
+)
+```
+
+For each placeholder:
+
+1. An exact map entry is used when present.
+2. Otherwise the value stored at `"*"` is used as a fallback when present.
+3. Otherwise the original placeholder, including delimiters, is preserved.
+
+Supported values include nil, booleans, numeric types, strings, `*string`, byte slices, `*[]byte`, `fmt.Stringer`, and other values printable with `%v`. Nil writes nothing.
+
+Use non-empty start and end delimiters. The API does not validate delimiter configuration.
+
+### Tmpl and TagFunc
+
+```go
+var output strings.Builder
+_, err := misc.Tmpl(
+    "user={{id}}",
+    "{{",
+    "}}",
+    &output,
+    func(w io.Writer, tag string) (int, error) {
+        if tag != "id" {
+            return 0, fmt.Errorf("unknown tag %q", tag)
+        }
+        return io.WriteString(w, "42")
+    },
+)
+```
+
+`Tmpl` is the lower-level scanner. It writes literal segments to `w`, calls `TagFunc` for each complete placeholder, and returns the total number of bytes reported as written. It stops on the first writer or callback error. An unclosed placeholder is preserved in the output.
+
+The caller owns concurrency: `Tmpl` stores no shared state, but `w` and the callback must be safe for the way the caller uses them.
+
+## Generic value helpers
+
+### Zero, Ptr, and Nil
+
+```go
+zero := misc.Zero[MyType]()
+pointer := misc.Ptr(42)
+nilPointer := misc.Nil[MyType]()
+```
+
+- `Zero[T]` returns the language-defined zero value of `T`.
+- `Ptr(value)` returns a pointer to a copy of `value`. For maps, slices, channels, and other reference-like values, that copied value still refers to the same underlying state.
+- `Nil[T]` returns a typed `*T` whose value is nil.
+
+### IsZero
+
+```go
+misc.IsZero(0)             // true
+misc.IsZero(42)            // false
+misc.IsZero(misc.Ptr(0))   // true
+misc.IsZero(misc.Ptr(42))  // false
+```
+
+`IsZero` uses reflection and recursively dereferences pointers. This means pointer identity is ignored: a non-nil pointer to a zero value is considered zero. A nil pointer is also zero. Non-pointer values use `reflect.Value.IsZero`.
+
+### IsNil
+
+```go
+misc.IsNil(nil)                 // true
+misc.IsNil((*int)(nil))         // true
+misc.IsNil([]string(nil))       // true
+misc.IsNil([]string{})          // false
+misc.IsNil(0)                   // false
+```
+
+`IsNil` returns true for a nil interface or a nil value of a nil-capable kind: channel, function, map, pointer, unsafe pointer, interface, or slice. It does not recursively dereference non-nil pointers.
+
+### Coalesce
+
+```go
+name := misc.Coalesce("", configuredName, "default")
+limit := misc.Coalesce(0, configuredLimit, 100)
+```
+
+`Coalesce` returns the first value for which `IsZero` is false. If every value is zero, or no value is provided, it returns `Zero[T]`. Because it uses `IsZero`, a pointer to a zero value is skipped.
+
+## Ordered-value math
+
+### MinMax
+
+```go
+lower, upper := misc.MinMax(a, b)
+```
+
+`MinMax` accepts any `cmp.Ordered` type and returns the values in ascending order. Equal values are returned unchanged.
+
+### Clamp
+
+```go
+value := misc.Clamp(input, minimum, maximum)
+```
+
+`Clamp` constrains a `cmp.Ordered` value to an inclusive interval. If the two bounds are reversed, it swaps them first through `MinMax`.
+
+## Unsafe zero-copy conversions
+
+### BytesToString
+
+```go
+text := misc.BytesToString(data)
+```
+
+`BytesToString` uses `unsafe.String` and `unsafe.SliceData`. It does not allocate or copy. The returned string aliases the byte slice. Mutating the slice while the string is observable violates normal string immutability assumptions and can corrupt map keys, cached data, or concurrent readers.
+
+Use `string(data)` when independent immutable storage is required.
+
+### StringToBytes
+
+```go
+data := misc.StringToBytes(text)
+```
+
+`StringToBytes` uses `unsafe.StringData` and `unsafe.Slice`. It does not allocate or copy. Treat the returned slice as read-only. Writing to it can mutate supposedly immutable data or fault when the string resides in read-only storage.
+
+Use `[]byte(text)` when the caller needs mutable or independently owned bytes.
+
+The unsafe helpers are intended for measured hot paths where ownership and lifetime are obvious. Do not use them merely to avoid a small allocation without profiling.
+
+## Deprecated APIs
+
+### MIME lookup
+
+The following functions are deprecated:
+
+```go
+extension := misc.ExtensionByType("image/png")
+mediaType := misc.TypeByExtension("png")
+charset := misc.CharsetByType("text/plain")
+```
+
+- `ExtensionByType` checks a built-in media table first, then `mime.ExtensionsByType`, and returns the first extension or an empty string.
+- `TypeByExtension` accepts a value with or without a leading dot, checks the built-in table, then calls `mime.TypeByExtension`.
+- `CharsetByType` returns the literal `charset=utf-8` only when the input starts with `text/`. It does not parse parameters.
+
+Use the standard `mime` package for media-type syntax and platform mappings, or a content-sniffing library when identifying file contents.
+
+### Stack
+
+```go
+trace := misc.Stack(skip)
+```
+
+`Stack` is deprecated. It walks callers, reads source files, and includes the referenced source line when available. This is slower, depends on source-file availability, and is less portable than standard stack facilities. Prefer `runtime.Stack` or `runtime/debug.Stack`.
+
+## Concurrency and ownership
+
+Most helpers have no shared mutable package state and are safe to call concurrently when their arguments are safe:
+
+- The HTTP helpers only read requests except `Redirect`, which writes its supplied response.
+- A constructed IP extractor contains immutable trust configuration after construction and can be reused concurrently.
+- Function wrappers call the captured functions; concurrency safety depends on those functions.
+- Template operations are local, but the supplied writer, data values, and callback determine safety.
+- Unsafe conversions introduce aliases, so synchronization and immutability are the caller's responsibility.
+
+Construct extractors and wrappers during application setup rather than rebuilding them for every request when their configuration is static.
+
+## Error behavior
+
+The package uses several different error styles appropriate to each helper:
+
+- `Redirect` returns the sentinel `ErrInvalidRedirectCode` for an unsupported code.
+- `PasswordHash` returns bcrypt errors; `PasswordVerify` folds every comparison error into false.
+- `Call`, `CallG`, `Wrap`, and `WrapG` return the first function error unchanged.
+- Template functions return writer or callback errors and preserve the count written before failure.
+- Value, math, digest, MIME, stack, HTTP inspection, and unsafe conversion helpers do not return errors.
+
+The package generally expects non-nil inputs where a pointer, callback, writer, network, or request is required. It does not add nil checks that would obscure programming errors.
+
+## Complete examples
+
+### HTTP handler behind a known XFF proxy chain
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "net"
+    "net/http"
+
+    "go-slim.dev/misc"
+)
+
+func main() {
+    _, proxies, err := net.ParseCIDR("203.0.113.0/24")
+    if err != nil {
+        log.Fatal(err)
+    }
+    extractClientIP := misc.ExtractIPFromXFFHeader(
+        misc.TrustIPRange(proxies),
+    )
+
+    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintf(w, "scheme=%s ip=%s", misc.Scheme(r), misc.RealIP(r, extractClientIP))
+    })
+    log.Fatal(http.ListenAndServe(":8080", handler))
+}
+```
+
+This example is safe only when the real deployment topology matches the configured network and the trusted edge replaces incoming forwarding fields.
+
+### Validation pipeline
+
+```go
+operation := misc.WrapG(
+    func(input Input) error { return input.Validate() },
+    func(input Input) error { return repository.Save(input) },
+)
+
+if err := operation(input); err != nil {
+    return err
+}
+```
+
+### Template with fallback
+
+```go
+message, err := misc.Interpolate(
+    "{greeting}, {name}!",
+    "{",
+    "}",
+    map[string]any{
+        "greeting": "Hello",
+        "*":        "unknown",
+    },
+)
+// message is "Hello, unknown!"
+```
+
+## Verification
+
+Run the package checks from the repository root:
+
+```sh
+go test ./...
+go vet ./...
+```
+
+`http_test.go` covers direct and forwarded HTTP behavior, status boundaries, address formats, malformed proxy chains, trust defaults, disabled categories, and explicit CIDR ranges. Other `*_test.go` files cover each utility group and include benchmarks for allocation-sensitive helpers.

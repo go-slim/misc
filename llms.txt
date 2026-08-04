@@ -1,0 +1,53 @@
+# go-slim.dev/misc
+
+> A compact Go utility package for HTTP request inspection, trusted client-IP extraction, digests and password hashing, function composition, template interpolation, generic value helpers, ordered-value math, MIME lookup, and zero-copy string/byte conversion.
+
+Import path: `go-slim.dev/misc`. Requires Go 1.25.5 or later. Runtime dependencies are `go-slim.dev/nego` for shared HTTP field names and `golang.org/x/crypto/bcrypt` for password hashing.
+
+Prefer the Go standard library when it already expresses the operation clearly. Use this package for the small reusable behaviors documented here; it is not an HTTP framework, middleware stack, validation library, or general encoding package.
+
+Important behavior:
+
+- `RealIP` reads only `Request.RemoteAddr` unless the caller explicitly supplies an `IPExtractor`. Proxy headers are untrusted input and require a deployment-specific trust policy.
+- `ExtractIPFromXFFHeader` scans the complete forwarding chain from right to left and returns the nearest untrusted address. Loopback, link-local, and private addresses are trusted by default.
+- `Scheme` trusts supported forwarding headers without validating the proxy source; sanitize them at the network boundary.
+- `Redirect` accepts status codes 300 through 308, writes only `Location` and the status, and returns `ErrInvalidRedirectCode` before changing the response for other codes.
+- `PasswordHash` uses bcrypt. `MD5` and `Sha1` are compatibility/checksum helpers and must not be used for password storage or security decisions.
+- `Call`, `CallG`, `Wrap`, and `WrapG` execute in declaration order and stop at the first error.
+- `IsZero` recursively dereferences pointers, so a non-nil pointer to a zero value is considered zero. `IsNil` checks nil-capable kinds without dereferencing them.
+- `BytesToString` and `StringToBytes` are zero-copy unsafe conversions. The resulting values share storage; never mutate data that originated from a string, and do not mutate a byte slice while an aliased string is in use.
+- `ExtensionByType`, `TypeByExtension`, `CharsetByType`, and `Stack` are deprecated.
+
+## Documentation
+
+- [English README](https://github.com/go-slim/misc/blob/main/README.md): Installation, feature overview, and examples.
+- [Chinese README](https://github.com/go-slim/misc/blob/main/README.zh-CN.md): 中文安装、功能概览与示例。
+- [Go package reference](https://pkg.go.dev/go-slim.dev/misc): Generated GoDoc for the exported API.
+- [Full LLM context](https://github.com/go-slim/misc/blob/main/llms-full.txt): Self-contained API, behavior, security, and usage reference.
+
+## Source
+
+- [HTTP utilities](https://github.com/go-slim/misc/blob/main/http.go): TLS and WebSocket detection, request scheme, redirect, direct/client IP extraction, and proxy trust configuration.
+- [Digest utilities](https://github.com/go-slim/misc/blob/main/digest.go): MD5, SHA-1, SHA-256, bcrypt hashing, and password verification.
+- [Function composition](https://github.com/go-slim/misc/blob/main/func.go): Sequential calls and reusable wrappers.
+- [Template interpolation](https://github.com/go-slim/misc/blob/main/tmpl.go): `Substitute`, `Interpolate`, `Tmpl`, and `TagFunc`.
+- [Generic utilities](https://github.com/go-slim/misc/blob/main/util.go): Zero values, pointers, nil/zero tests, and coalescing.
+- [Ordered-value math](https://github.com/go-slim/misc/blob/main/math.go): `MinMax` and `Clamp`.
+- [Unsafe conversions](https://github.com/go-slim/misc/blob/main/unsafe.go): Zero-copy conversion between `string` and `[]byte`.
+- [Deprecated MIME helpers](https://github.com/go-slim/misc/blob/main/mime.go): MIME type and extension lookup.
+- [Deprecated stack helper](https://github.com/go-slim/misc/blob/main/stack.go): Source-line stack rendering.
+
+## Tests
+
+- [HTTP tests](https://github.com/go-slim/misc/blob/main/http_test.go): Header precedence, redirect boundaries, IP formats, proxy chains, trust options, and malformed input.
+- [Digest tests](https://github.com/go-slim/misc/blob/main/digest_test.go): Digest output and bcrypt behavior.
+- [Function tests](https://github.com/go-slim/misc/blob/main/func_test.go): Ordering, early termination, and wrappers.
+- [Template tests](https://github.com/go-slim/misc/blob/main/tmpl_test.go): Placeholder replacement, fallback values, and writer errors.
+- [Generic and math tests](https://github.com/go-slim/misc/blob/main/util_test.go): Zero/nil semantics, coalescing, pointers, and benchmarks.
+- [Unsafe conversion tests](https://github.com/go-slim/misc/blob/main/unsafe_test.go): Aliasing, round trips, edge cases, and benchmarks.
+
+## Optional references
+
+- [go-slim.dev/nego](https://github.com/go-slim/nego): Shared HTTP constants used by the HTTP helpers.
+- [Echo IP address guide](https://echo.labstack.com/docs/ip-address): Security model behind the proxy-aware IP extractors.
+- [MIT license](https://github.com/go-slim/misc/blob/main/LICENSE): Project license terms.
